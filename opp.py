@@ -49,7 +49,9 @@ st.markdown(
     div[data-testid="stChatMessageAvatarUser"] {
         display: none !important;
     }
-
+    .st-emotion-cache-legh9n p {
+        text-align : left ; 
+    }
     /* Styles the container for the user's message to push it right */
     div[data-testid="stChatMessage"]:has(div[aria-label="user message"]) {
         display: flex;
@@ -160,7 +162,6 @@ def create_master_context(transcription, video_descriptions):
 
 
 def get_query_category(question, model_name="gemma3:4b"):
-    """First, ask the AI to categorize the user's question."""
     url = "http://localhost:11434/api/generate"
     
     prompt = f"""You are a query routing assistant. Your job is to determine what kind of information the user is asking for.
@@ -186,7 +187,6 @@ CATEGORY:"""
 
 
 def ask_gemma_qna(context, question, model_name="gemma3:4b"):
-    """The definitive two-step Q&A function with highly specific prompts."""
     
     category = get_query_category(question, model_name)
     print(f"Query Category: {category}") 
@@ -215,7 +215,7 @@ def ask_gemma_qna(context, question, model_name="gemma3:4b"):
 
     url = "http://localhost:11434/api/generate"
     history_text = "\n".join([f"{msg['role']}: {msg['content']}" for msg in st.session_state.get('conversation_history', [])])
-    
+
     final_prompt = f"""You are a Video QA Assistant. Follow the user's instruction precisely.
 --- RELEVANT CONTEXT ---
 {focused_context}
@@ -252,6 +252,8 @@ def slugify(text):
     text = text.lower()
     text = re.sub(r'\s+', '_', text)
     text = re.sub(r'[^\w\-]', '', text)
+    text = re.sub(r'\d+' , '' , text)
+    text = text.replace(".json" , "")
     return text
 
 HISTORY_DIR = "chat_history"
@@ -280,7 +282,6 @@ def load_chat(filename):
 
 
 def get_saved_chats():
-    """Gets a list of all saved chat JSON files, sorted by modification time (newest first)."""
     try:
         files = [os.path.join(HISTORY_DIR, f) for f in os.listdir(HISTORY_DIR) if f.endswith('.json')]
         
@@ -299,7 +300,7 @@ if "new_chat_started" not in st.session_state:
     st.session_state.new_chat_started = True
 
 with st.sidebar:
-    if st.button("➕ New Chat", use_container_width=True):
+    if st.button("New Chat", use_container_width=True):
         st.session_state.active_chat_id = None
         st.session_state.conversation_history = []
         st.session_state.new_chat_started = True
@@ -346,7 +347,7 @@ with st.sidebar:
                     
                     st.session_state.active_chat_id = new_chat_filename
                     save_chat(new_chat_filename, st.session_state.video_path, st.session_state.master_context, st.session_state.conversation_history)
-                    status.update(label="✅ Analysis Complete!", state="complete")
+                    status.update(label=" Analysis Complete!", state="complete")
                 st.rerun()
 
     st.markdown("---")
