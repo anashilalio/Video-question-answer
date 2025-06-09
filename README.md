@@ -81,13 +81,11 @@ pip install -r requirements.txt
 ## Usage
 
 1. **Start Ollama** (if not already running):
-   ```bash
-   ollama serve
-   ```
+   
 
 2. **Run the Streamlit application**:
    ```bash
-   streamlit run app.py
+   streamlit run opp.py
    ```
 
 3. **Open your browser** and navigate to `http://localhost:8501`
