@@ -80,7 +80,7 @@ pip install -r requirements.txt
 
 ## Usage
 
-1. **Start Ollama** (if not already running):
+1. **Start Ollama**:
    
 
 2. **Run the Streamlit application**:
