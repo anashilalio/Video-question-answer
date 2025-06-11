@@ -1,6 +1,8 @@
 ﻿# Multi-Modal Video QA Assistant
 
 An interactive web application built with Streamlit and Python that provides a conversational interface for analyzing video content. The system uses a multi-modal AI pipeline to "watch" video frames, "listen" to audio, and "reason" about the combined information to answer user questions in real-time.
+![ezgif-3e34a7f5df4652](https://github.com/user-attachments/assets/3a6c9ae8-3c1b-4aeb-a908-a0894c3e19ac)
+
 
 ## Features
 
