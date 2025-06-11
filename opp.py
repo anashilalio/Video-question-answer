@@ -161,73 +161,38 @@ def create_master_context(transcription, video_descriptions):
     return context
 
 
-def get_query_category(question, model_name="gemma3:4b"):
-    url = "http://localhost:11434/api/generate"
-    
-    prompt = f"""You are a query routing assistant. Your job is to determine what kind of information the user is asking for.
-Based on the user's question, should I search in the 'AUDIO_TRANSCRIPT', the 'VISUAL_EVENTS', or 'GENERAL_SUMMARY'?
-- If the question is about what someone said, mentioned, or talked about, respond with only the word: AUDIO_TRANSCRIPT
-- If the question is about what happened at a specific time, or what something looked like, respond with only the word: VISUAL_EVENTS
-- For all other general questions, respond with only the word: GENERAL_SUMMARY
-
-User's question: "{question}"
-CATEGORY:"""
-
-    payload = { "model": model_name, "prompt": prompt, "stream": False, "options": {"temperature": 0.0} }
-    try:
-        response = requests.post(url, json=payload, timeout=60)
-        response.raise_for_status()
-        category = response.json().get("response", "GENERAL_SUMMARY").strip()
-        if category not in ["AUDIO_TRANSCRIPT", "VISUAL_EVENTS", "GENERAL_SUMMARY"]:
-            return "GENERAL_SUMMARY"
-        return category
-    except requests.exceptions.RequestException:
-        return "GENERAL_SUMMARY"
-
-
 
 def ask_gemma_qna(context, question, model_name="gemma3:4b"):
     
-    category = get_query_category(question, model_name)
-    print(f"Query Category: {category}") 
-
-    try:
-        audio_transcript = context.split("AUDIO TRANSCRIPT:")[1].split("VISUAL EVENTS:")[0].strip()
-        visual_events = context.split("VISUAL EVENTS:")[1].split("--- END OF CONTEXT ---")[0].strip()
-    except IndexError:
-        audio_transcript = "Not available."
-        visual_events = "Not available."
-
-    instruction = ""
-    focused_context = ""
-
-    if category == "AUDIO_TRANSCRIPT":
-        focused_context = f"--- START OF AUDIO TRANSCRIPT ---\n{audio_transcript}\n--- END OF AUDIO TRANSCRIPT ---"
-        instruction = "The user is asking what was said. Directly quote or summarize the content from the AUDIO TRANSCRIPT. Begin your answer with 'According to the transcript...' or 'He said...'"
-    
-    elif category == "VISUAL_EVENTS":
-        focused_context = f"--- START OF VISUAL EVENTS ---\n{visual_events}\n--- END OF VISUAL EVENTS ---"
-        instruction = "Based ONLY on the timestamped visual events provided, answer the user's question about what is happening."
-    
-    else: 
-        focused_context = context
-        instruction = "Based on the full context, answer the following question:"
-
     url = "http://localhost:11434/api/generate"
     history_text = "\n".join([f"{msg['role']}: {msg['content']}" for msg in st.session_state.get('conversation_history', [])])
+    
+    final_prompt = f"""You are a highly specialized Video Analysis Assistant. Your purpose is to answer questions about a video by exclusively using the information provided in the CONTEXT block.
 
-    final_prompt = f"""You are a Video QA Assistant. Follow the user's instruction precisely.
---- RELEVANT CONTEXT ---
-{focused_context}
+The CONTEXT block contains two types of information:
+1.  **AUDIO TRANSCRIPT:** The full text of what was spoken in the video.
+2.  **VISUAL EVENTS:** A list of descriptions of what was seen, each with a precise timestamp (e.g., "Time 10.00s: ...").
 
---- CONVERSATION HISTORY ---
+Your task is to follow these rules with extreme precision:
+-   **Rule 1 (Audio Questions):** If the user asks what someone SAID, mentioned, or talked about (e.g., "what were his words?", "did he mention a cat?"), you MUST find the answer by quoting or summarizing the AUDIO TRANSCRIPT.
+-   **Rule 2 (Visual Questions):** If the user asks what HAPPENED, what someone was DOING, or what something LOOKED like (e.g., "what was the man wearing?", "describe the scene"), you MUST find the answer in the VISUAL EVENTS.
+-   **Rule 3 (Timestamped Answers):** When you answer using a visual event, you MUST cite the timestamp in your answer. For example: "At 10.00s, a man is seen smiling on a red carpet."
+-   **Rule 4 (Intelligent Inference):** If the exact answer is not explicitly stated in the context, do not just say "I don't know." Instead, analyze the entire context to infer the most likely answer
+--- START OF CONTEXT ---
+{context}
+--- END OF CONTEXT ---
+
+--- CONVERSATION HISTORY (for context on follow-up questions) ---
 {history_text}
 
---- INSTRUCTION ---
-{instruction}
-If the information is not available in the provided context, state that clearly.
-Question: {question}
-Answer:"""
+--- THE USER'S QUESTION ---
+{question}
+
+--- YOUR ANSWER (Follow all rules) ---
+"""
+    
+    # Store this prompt in the session state so we can debug it in the UI
+    st.session_state.last_prompt = final_prompt
     
     payload = { "model": model_name, "prompt": final_prompt, "stream": False }
     try:
@@ -351,6 +316,7 @@ with st.sidebar:
                 st.rerun()
 
     st.markdown("---")
+    
     st.header("Chat History")
     for chat_file in get_saved_chats():
         st.markdown(f'<div class="history-item">', unsafe_allow_html=True)
