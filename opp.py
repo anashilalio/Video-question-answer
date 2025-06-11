@@ -1,4 +1,3 @@
-
 import streamlit as st
 import os
 import requests
@@ -164,6 +163,7 @@ def create_master_context(transcription, video_descriptions):
 
 def ask_gemma_qna(context, question, model_name="gemma3:4b"):
     
+    
     url = "http://localhost:11434/api/generate"
     history_text = "\n".join([f"{msg['role']}: {msg['content']}" for msg in st.session_state.get('conversation_history', [])])
     
@@ -183,8 +183,17 @@ Your task is to follow these rules with extreme precision:
 --- END OF CONTEXT ---
 
 --- CONVERSATION HISTORY (for context on follow-up questions) ---
+--- CONVERSATION HISTORY (for context on follow-up questions) ---
 {history_text}
 
+--- THE USER'S QUESTION ---
+{question}
+
+--- YOUR ANSWER (Follow all rules) ---
+"""
+    
+    # Store this prompt in the session state so we can debug it in the UI
+    st.session_state.last_prompt = final_prompt
 --- THE USER'S QUESTION ---
 {question}
 
@@ -316,6 +325,7 @@ with st.sidebar:
                 st.rerun()
 
     st.markdown("---")
+    
     
     st.header("Chat History")
     for chat_file in get_saved_chats():
