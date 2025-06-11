@@ -194,14 +194,6 @@ Your task is to follow these rules with extreme precision:
     
     # Store this prompt in the session state so we can debug it in the UI
     st.session_state.last_prompt = final_prompt
---- THE USER'S QUESTION ---
-{question}
-
---- YOUR ANSWER (Follow all rules) ---
-"""
-    
-    # Store this prompt in the session state so we can debug it in the UI
-    st.session_state.last_prompt = final_prompt
     
     payload = { "model": model_name, "prompt": final_prompt, "stream": False }
     try:
